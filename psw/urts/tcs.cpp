@@ -41,6 +41,7 @@
 #include "rts.h"
 #include "enclave.h"
 #include "get_thread_id.h"
+#include "vma_access.h"
 
 int do_ecall(const int fn, const void *ocall_table, const void *ms, CTrustThread *trust_thread);
 
@@ -522,6 +523,7 @@ sgx_status_t CTrustThreadPool::new_thread()
         trust_thread->get_enclave()->add_thread(trust_thread);
         add_to_free_thread_vector(trust_thread);
         m_unallocated_threads.pop_back();
+        lin_vma_write(&tcsp->flags, lin_vma_read(&tcsp->flags) | DBGOPTIN);
         urts_add_tcs(tcsp);
     }
     

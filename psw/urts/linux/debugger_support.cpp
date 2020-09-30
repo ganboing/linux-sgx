@@ -39,6 +39,7 @@
 #include "thread_data.h"
 #include "se_memory.h"
 #include "enclave.h"
+#include "vma_access.h"
 #include <string.h>
 #include <util.h>
 #include <pthread.h>
@@ -58,10 +59,17 @@ void insert_debug_tcs_info_head(debug_enclave_info_t* enclave_info, debug_tcs_in
 {
     tcs_info->next_tcs_info = enclave_info->tcs_list;
     enclave_info->tcs_list = tcs_info;
+    tcs_t* tcsp = (tcs_t*)tcs_info->TCS_address;
+    lin_vma_write(&tcsp->flags, lin_vma_read(&tcsp->flags) | DBGOPTIN);
 }
 
 static void insert_debug_info_head(debug_enclave_info_t *enclave_info)
 {
+    /*debug_tcs_info_t *tcs_info = enclave_info->tcs_list;
+    while(tcs_info) {
+	((tcs_t*)(tcs_info->TCS_address))->flags |= DBGOPTIN;
+	tcs_info = tcs_info->next_tcs_info;
+    }*/
     enclave_info->next_enclave_info = g_debug_enclave_info_list;
     //g_debug_enclave_info_list = enclave_info;
     //To avoid the race between attach event and load event, we set load event bp at where the list is changed

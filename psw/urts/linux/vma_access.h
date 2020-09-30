@@ -29,68 +29,11 @@
  *
  */
 
+#ifndef _VMA_ACCESS_H_
+#define _VMA_ACCESS_H_
 
-#include "se_wrapper.h"
-#include <dirent.h>
-#include <vector>
+unsigned long lin_vma_read(void* addr);
 
-//get all thread id of current process.
-void get_thread_set(std::vector<se_thread_id_t> &thread_vector)
-{
-    DIR*   dir = NULL;
-    struct dirent* dirent = NULL;
+void lin_vma_write(void* addr, unsigned long data);
 
-    if(NULL == (dir = opendir("/proc/self/task")))
-    {
-        SE_TRACE(SE_TRACE_WARNING, "Failed to open /proc/slef/task\n");
-    }
-    else
-    {
-        while(NULL != (dirent=readdir(dir)))
-        {
-            se_thread_id_t tid = (se_thread_id_t)strtol(dirent->d_name, NULL, 10);
-
-            if(!tid) continue; //dir name may be . or ..
-            thread_vector.push_back(tid);
-            SE_TRACE(SE_TRACE_DEBUG, "tid = %d\n", (int)tid);
-        }
-        closedir(dir);
-    }
-}
-
-static int get_proc_mem_fd()
-{
-    struct managed_fd {
-        managed_fd() {
-            fd = open("/proc/self/mem", O_RDWR);
-        };
-        ~managed_fd() {
-            if (fd >= 0)
-                close(fd);
-        }
-        int fd;
-    };
-    static managed_fd mfd = {};
-    return mfd.fd;
-}
-
-unsigned long lin_vma_read(void* addr)
-{
-    int fd = get_proc_mem_fd();
-    ssize_t rc;
-    unsigned long ret = (unsigned long)(0) - 1;
-    if (fd >= 0)
-        rc = pread(fd, &ret, sizeof(ret), uintptr_t(addr));
-
-    (void)rc;
-    return ret;
-}
-
-void lin_vma_write(void* addr, unsigned long data)
-{
-    int fd = get_proc_mem_fd();
-    ssize_t rc;
-    if (fd >= 0)
-        rc = pwrite(fd, &data, sizeof(data), uintptr_t(addr));
-    (void)rc;
-}
+#endif   //_VMA_ACCESS_H_
