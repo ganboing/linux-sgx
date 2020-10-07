@@ -73,6 +73,11 @@ EENTER_PROLOG
     vzeroupper
 1:
     mov frame_arg0, %xbx                        /* tcs addr */
+#if defined(__i386__)
+    PTWEMU32 PTWEMU_eenter_tcs64 %xbx
+#elif defined(__x86_64__)
+    PTWEMU64 PTWEMU_eenter_tcs64 %xbx
+#endif
     lea_pic .Lasync_exit_pointer, %xcx          /* aep addr */
     mov $SE_EENTER, %xax                        /* EENTER leaf */
 
@@ -133,6 +138,12 @@ EENTER_PROLOG
     EENTER_EPILOG
 
 .Lasync_exit_pointer:
+#if defined(__i386__)
+    PTWEMU32 PTWEMU_eresume_tcs64 %xbx
+#elif defined(__x86_64__)
+    PTWEMU64 PTWEMU_eresume_tcs64 %xbx
+#endif
+    lea_pic .Lasync_exit_pointer, %xcx          /* aep addr */
     ENCLU
 
 .size __morestack, .-__morestack

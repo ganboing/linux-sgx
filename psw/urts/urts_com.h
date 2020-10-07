@@ -52,6 +52,7 @@
 #include "enclave_creator_hw.h"
 #include "edmm_utility.h"
 #include <sys/mman.h>
+#include <alloca.h>
 #ifndef PARSER
 #include "elfparser.h"
 #define PARSER ElfParser
@@ -66,6 +67,22 @@ extern "C" int __itt_init_ittlib(const char*, __itt_group_id);
 extern "C" __itt_global* __itt_get_ittapi_global();
 
 
+typedef struct EvcEvLoadModule {
+	uint32_t type;
+	uint32_t pid;
+	uint64_t base;
+	uint64_t len;
+	uint16_t pathlen;
+	char path[];
+} __attribute__((packed)) EvcEvLoadModule;
+
+int fd_evc = [](){
+    const char *_env = getenv("SGX_EVC_FD");
+    int fd;
+    if (!_env || !sscanf(_env, "%d", &fd))
+        return -1;
+    return fd;
+}();
 
 #define GET_FEATURE_POINTER(feature_name, ex_features_p)    ex_features_p[feature_name##_BIT_IDX]
 // Get the corresponding feature pointer for the input feature name
@@ -336,6 +353,18 @@ static int __create_enclave(BinParser &parser,
         debug_info->enclave_type |= ET_DEBUG;
     if (!(get_enclave_creator()->use_se_hw()))
         debug_info->enclave_type |= ET_SIM;
+
+    if (fd_evc >= 0) {
+        EvcEvLoadModule *ev = (EvcEvLoadModule*)alloca(sizeof(EvcEvLoadModule) + file.name_len);
+        ev->type = 0;
+        ev->pid = getpid();
+        ev->base = (uint64_t)loader.get_start_addr();
+        ev->len = metadata->enclave_size;
+        ev->pathlen = (uint16_t)file.name_len;
+        memcpy(ev->path, file.name, file.name_len);
+        ssize_t rc = write(fd_evc, ev, sizeof(EvcEvLoadModule) + file.name_len);
+	(void)rc;
+    }
 
     if(debug || !(get_enclave_creator()->use_se_hw()))
     {

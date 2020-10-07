@@ -95,6 +95,29 @@
 #define SE_EINIT      2
 #define SE_EREMOVE    3
 
+.macro PTWEMU prefix reg sz
+    .globl \prefix
+//    push    %xcx
+//    push    %xax
+    mov     \sz, %xcx
+    jmp     1f
+1:
+    ror     $1, \reg
+    jc      \prefix
+\prefix\():
+    loop    1b
+//    pop     %xax
+//    pop     %xcx
+.endm
+
+.macro PTWEMU32 prefix reg
+    PTWEMU \prefix \reg $32
+.endm
+
+.macro PTWEMU64 prefix reg
+    PTWEMU \prefix \reg $64
+.endm
+
 /*
  * Macros for GNU assembly
  */
